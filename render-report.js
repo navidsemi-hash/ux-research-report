@@ -109,6 +109,7 @@ function buildStep(step, number) {
   const skipped   = !!step.skipped;
   const completed = !!step.completed;
   const elements  = coerceArray(step.elements);
+  const isEmptyStep = !skipped && elements.every(isElementEmpty);
 
   const titleText = skipped
     ? `<span class="pdf-step-skip-label">Skipped</span> ${escHtml(step.title || '')}`
@@ -124,8 +125,12 @@ function buildStep(step, number) {
     ? elements.map(buildElement).join('')
     : `<p class="pdf-el-empty">No elements in this step.</p>`;
 
+  const sectionClasses = ['pdf-pillar-section'];
+  if (skipped) sectionClasses.push('is-skipped');
+  if (isEmptyStep) sectionClasses.push('is-empty');
+
   return `
-<section class="pdf-pillar-section${skipped ? ' is-skipped' : ''}">
+<section class="${sectionClasses.join(' ')}">
   <div class="pdf-pillar-hd">
     <div class="pdf-pillar-title-wrap">
       <h2 class="pdf-pillar-name">${titleText}${completeIcon}</h2>
@@ -136,6 +141,25 @@ function buildStep(step, number) {
     ${elementsHtml}
   </div>
 </section>`;
+}
+
+// A step is "empty" when every element in it has no user-entered data —
+// checked independently of step.completed, since a step can be marked
+// complete with nothing filled in.
+function isElementEmpty(el) {
+  switch (el.kind) {
+    case 'text':       return !(el.body || '').trim();
+    case 'checklist':  return !coerceArray(el.items).some(it => it.checked);
+    case 'table':      return coerceArray(el.rows).every(row => coerceArray(row).every(cell => !String(cell ?? '').trim()));
+    case 'attachment': return coerceArray(el.files).length === 0;
+    case 'link':       return !(el.url || '').trim();
+    case 'rating':     return el.value === null || el.value === undefined;
+    case 'participant':return !(el.name || '').trim() && !(el.segment || '').trim() && !(el.notes || '').trim();
+    case 'quote':      return !(el.text || '').trim() && !(el.source || '').trim();
+    case 'severity':   return (el.level === null || el.level === undefined) && !(el.description || '').trim();
+    case 'qa':         return !(el.question || '').trim() && !(el.answer || '').trim();
+    default:            return true;
+  }
 }
 
 // ─── Element dispatch ────────────────────────────────────────────────────────

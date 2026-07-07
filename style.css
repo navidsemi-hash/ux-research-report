@@ -506,6 +506,7 @@ body {
 /* Step section */
 .pdf-pillar-section { border-top: 1px solid var(--border-soft); }
 .pdf-pillar-section.is-skipped { opacity: .55; }
+.pdf-pillar-section.is-empty   { opacity: .5; }
 
 .pdf-pillar-hd {
   display: flex;
