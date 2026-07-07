@@ -16,6 +16,10 @@
   --brand:          #4f46e5;
   --brand-hover:    #4338ca;
   --brand-light:    #eef0fd;
+  --sev-critical-bg:   #fef2f2;  --sev-critical-text: #dc2626;
+  --sev-high-bg:       #fff7ed;  --sev-high-text:     #ea580c;
+  --sev-medium-bg:     #fffbeb;  --sev-medium-text:   #d97706;
+  --sev-low-bg:        #f0fdf4;  --sev-low-text:      #16a34a;
 }
 .dark-theme {
   --bg-base:        #0f172a;
@@ -31,6 +35,10 @@
   --brand:          #818cf8;
   --brand-hover:    #6366f1;
   --brand-light:    #1e1b4b;
+  --sev-critical-bg:   #450a0a;  --sev-critical-text: #f87171;
+  --sev-high-bg:       #431407;  --sev-high-text:     #fb923c;
+  --sev-medium-bg:     #451a03;  --sev-medium-text:   #fbbf24;
+  --sev-low-bg:        #052e16;  --sev-low-text:      #4ade80;
 }
 
 /* ─── Dark-mode overrides — screen only (print/PDF stays light always) ──── */
@@ -303,6 +311,8 @@ body {
   #report-content   { border: none; border-radius: 0; }
   .report-page-footer { display: none !important; }
   .auth-overlay     { display: none !important; }
+  .pdf-pillar-section,
+  .pdf-item          { page-break-inside: avoid; }
 }
 
 /* ── Sign-in / Register Modal ── */
@@ -433,3 +443,204 @@ body {
   padding: 0 0 0 3px;
 }
 .auth-toggle-link:hover { text-decoration: underline; }
+
+/* ── Report Body (rendered by render-report.js) ──────────────────────────── */
+
+.pdf-report { color: var(--text-primary); }
+
+/* Cover */
+.pdf-header-bar {
+  display: flex;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--brand);
+  color: #ffffff;
+}
+.pdf-header-left { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
+.pdf-header-mark { font-size: 18px; opacity: .85; }
+
+.pdf-cover-body { padding: 24px 24px 20px; }
+.pdf-report-h1  { font-size: 22px; font-weight: 700; color: var(--text-primary); margin-bottom: 16px; }
+
+.pdf-meta-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pdf-meta-key {
+  width: 130px;
+  padding: 5px 10px 5px 0;
+  color: var(--text-secondary);
+  font-weight: 600;
+  vertical-align: top;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-soft);
+}
+.pdf-meta-val {
+  padding: 5px 0;
+  color: var(--text-primary);
+  border-bottom: 1px solid var(--border-soft);
+}
+
+/* Progress summary */
+.pdf-progress-section { padding: 0 24px 20px; }
+.pdf-section-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.pdf-prog-track {
+  height: 6px;
+  background: var(--border);
+  border-radius: 100px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.pdf-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--brand), #818cf8);
+  border-radius: 100px;
+  min-width: 2px;
+}
+.pdf-prog-pct { font-size: 11px; color: var(--brand); font-weight: 600; }
+
+/* Step section */
+.pdf-pillar-section { border-top: 1px solid var(--border-soft); }
+.pdf-pillar-section.is-skipped { opacity: .55; }
+
+.pdf-pillar-hd {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 14px 24px;
+  background: var(--bg-base);
+}
+.pdf-pillar-title-wrap { flex: 1; min-width: 0; }
+.pdf-pillar-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--text-primary);
+  letter-spacing: -0.1px;
+}
+.pdf-step-skip-label {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 100px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  background: var(--border);
+  color: var(--text-secondary);
+}
+.pdf-step-complete-icon { width: 14px; height: 14px; color: var(--sev-low-text); flex-shrink: 0; }
+
+.pdf-items { padding: 14px 24px 18px; display: flex; flex-direction: column; gap: 14px; }
+
+/* Guidance callout — matches the audit viewer's note styling */
+.pdf-item-note {
+  padding: 8px 12px;
+  border-left: 3px solid var(--brand);
+  background: var(--bg-base);
+  border-radius: 0 6px 6px 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+.pdf-step-guidance { margin: 0; }
+
+/* Element card */
+.pdf-item { padding: 0; border-bottom: none; }
+.pdf-item-label { font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.pdf-el-body  { font-size: 12.5px; line-height: 1.6; color: var(--text-primary); white-space: pre-wrap; }
+.pdf-el-empty { font-size: 12px; color: var(--text-muted); font-style: italic; }
+.pdf-el-question { font-size: 12.5px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
+
+/* Checklist */
+.pdf-checklist { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.pdf-checklist-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; }
+.pdf-checklist-box { flex-shrink: 0; }
+.pdf-checklist-row.is-checked .pdf-checklist-text { text-decoration: line-through; color: var(--text-checked); }
+
+/* Table */
+.pdf-table-wrap { overflow-x: auto; }
+.pdf-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.pdf-table th, .pdf-table td {
+  padding: 6px 10px;
+  border: 1px solid var(--border-soft);
+  text-align: left;
+  vertical-align: top;
+}
+.pdf-table th { background: var(--bg-base); font-weight: 700; color: var(--text-secondary); white-space: nowrap; }
+
+/* Attachment */
+.pdf-file-list { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+.pdf-file-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  width: fit-content;
+  border-radius: 100px;
+  background: var(--bg-base);
+  border: 1px solid var(--border-soft);
+  font-size: 11.5px;
+  color: var(--text-secondary);
+}
+.pdf-file-chip svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+/* Link */
+.pdf-el-link { font-size: 12.5px; }
+.pdf-el-link a { color: var(--brand); font-weight: 600; word-break: break-all; }
+.pdf-el-link a:hover { text-decoration: underline; }
+
+/* Rating / severity pill */
+.pdf-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 100px;
+  background: var(--brand-light);
+  color: var(--brand);
+}
+.pdf-sev-pill {
+  display: inline-block;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .3px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 100px;
+  margin-bottom: 6px;
+}
+.pdf-sev-pill--critical { background: var(--sev-critical-bg); color: var(--sev-critical-text); }
+.pdf-sev-pill--high      { background: var(--sev-high-bg);     color: var(--sev-high-text); }
+.pdf-sev-pill--medium    { background: var(--sev-medium-bg);   color: var(--sev-medium-text); }
+.pdf-sev-pill--low       { background: var(--sev-low-bg);      color: var(--sev-low-text); }
+
+/* Participant card */
+.pdf-participant-card {
+  padding: 10px 12px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+  background: var(--bg-base);
+}
+.pdf-participant-name    { font-size: 12.5px; font-weight: 700; color: var(--text-primary); }
+.pdf-participant-segment { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.pdf-participant-notes   { font-size: 12px; color: var(--text-secondary); line-height: 1.5; margin-top: 6px; white-space: pre-wrap; }
+
+/* Quote */
+.pdf-quote {
+  padding: 10px 14px;
+  border-left: 3px solid var(--brand);
+  background: var(--bg-base);
+  border-radius: 0 6px 6px 0;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--text-primary);
+  line-height: 1.55;
+}
+.pdf-quote-source { display: block; margin-top: 6px; font-size: 11px; font-style: normal; font-weight: 600; color: var(--text-muted); }
