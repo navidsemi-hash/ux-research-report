@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>UX Research Report</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="vendor/feather.min.js"></script>
+</head>
+<body>
+
+  <div class="report-toolbar" role="toolbar" aria-label="Report actions">
+
+    <div class="toolbar-brand">
+      <span class="toolbar-mark" aria-hidden="true">◼</span>
+      UX Research Report
+    </div>
+
+    <div class="toolbar-right">
+      <button id="btn-download-pdf" class="toolbar-btn toolbar-btn--primary" type="button">
+        <i data-feather="download" aria-hidden="true"></i>
+        Download PDF
+      </button>
+      <button id="btn-print" class="toolbar-btn toolbar-btn--ghost" type="button">
+        <i data-feather="printer" aria-hidden="true"></i>
+        Print
+      </button>
+    </div>
+
+  </div>
+
+  <div class="report-page-body">
+    <div id="report-content">
+      <div class="report-loading">Loading report…</div>
+    </div>
+  </div>
+
+  <footer class="report-page-footer">
+    © 2026 Navid Semi &nbsp;|&nbsp;
+    <a href="https://navidsemi.com" target="_blank" rel="noopener">navidsemi.com</a>.
+    All Rights Reserved.
+  </footer>
+
+  <div id="auth-modal" class="auth-overlay" aria-hidden="true"
+       role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
+    <div class="auth-card">
+
+      <button id="btn-auth-close" class="auth-modal-close" type="button" aria-label="Close">✕</button>
+
+      <div class="auth-icon-wrap">
+        <i data-feather="user" aria-hidden="true"></i>
+      </div>
+      <h2 id="auth-modal-title" class="auth-title">Sign in to view this report</h2>
+      <p class="auth-desc">This research report is private. Sign in to continue.</p>
+
+      <div class="auth-field">
+        <label class="auth-label" for="auth-email">Email</label>
+        <input id="auth-email" type="email" class="auth-input"
+               placeholder="you@example.com" autocomplete="email" />
+      </div>
+      <div class="auth-field">
+        <label class="auth-label" for="auth-password">Password</label>
+        <input id="auth-password" type="password" class="auth-input"
+               placeholder="Password" autocomplete="current-password" />
+      </div>
+      <p id="auth-error" class="auth-error" aria-live="polite"></p>
+
+      <button id="auth-submit-btn" class="auth-btn-primary" type="button">Sign in</button>
+      <button id="auth-google-btn" class="auth-btn-google" type="button">
+        <svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+          <path fill="#FBBC05" d="M3.964 10.707A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.039l3.007-2.332z"/>
+          <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z"/>
+        </svg>
+        Continue with Google
+      </button>
+
+      <p class="auth-toggle-text">
+        <span id="auth-toggle-copy">Don't have an account?</span>
+        <button id="auth-toggle-link" class="auth-toggle-link" type="button">Register</button>
+      </p>
+
+    </div>
+  </div>
+
+  <script src="view.js" type="module"></script>
+
+</body>
+</html>
