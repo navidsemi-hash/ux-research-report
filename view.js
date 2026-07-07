@@ -30,6 +30,12 @@ document.addEventListener('DOMContentLoaded', async () => {
   initShareToolbar();
   initAuthModal();
 
+  document.getElementById('btn-add-to-chrome')?.addEventListener('click', () => {
+    // TODO: replace with live Chrome Web Store URL when extension is published
+    // window.open('https://chromewebstore.google.com/detail/ux-research-companion/<id>', '_blank');
+    toast('UX Research Companion is coming soon to the Chrome Web Store');
+  });
+
   // Reports are public — anyone with the link sees it, no sign-in required.
   await loadReport();
 });
@@ -78,6 +84,19 @@ async function fetchReport(reportId) {
     throw Object.assign(new Error('Report not found.'), { isNotFound: true });
   }
   return rows[0];
+}
+
+// ─── Toast ───────────────────────────────────────────────────────────────────
+
+let _toastTimer = null;
+
+function toast(message, durationMs = 3000) {
+  const el = document.getElementById('toast');
+  if (!el) return;
+  clearTimeout(_toastTimer);
+  el.textContent = message;
+  el.classList.add('is-visible');
+  _toastTimer = setTimeout(() => el.classList.remove('is-visible'), durationMs);
 }
 
 // ─── Share Toolbar ───────────────────────────────────────────────────────────

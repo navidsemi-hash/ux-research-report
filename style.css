@@ -20,6 +20,7 @@
   --sev-high-bg:       #fff7ed;  --sev-high-text:     #ea580c;
   --sev-medium-bg:     #fffbeb;  --sev-medium-text:   #d97706;
   --sev-low-bg:        #f0fdf4;  --sev-low-text:      #16a34a;
+  --toast-bg:          #0d1117;  --toast-color:        #ffffff;
 }
 .dark-theme {
   --bg-base:        #0f172a;
@@ -39,6 +40,7 @@
   --sev-high-bg:       #431407;  --sev-high-text:     #fb923c;
   --sev-medium-bg:     #451a03;  --sev-medium-text:   #fbbf24;
   --sev-low-bg:        #052e16;  --sev-low-text:      #4ade80;
+  --toast-bg:          #334155;  --toast-color:        #f1f5f9;
 }
 
 /* ─── Dark-mode overrides — screen only (print/PDF stays light always) ──── */
@@ -313,8 +315,35 @@ body {
   .report-page-footer { display: none !important; }
   .auth-overlay     { display: none !important; }
   .report-share-toolbar { display: none !important; }
+  #btn-add-to-chrome    { display: none !important; }
   .pdf-pillar-section,
   .pdf-item          { page-break-inside: avoid; }
+}
+
+/* ── Toast ── */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%) translateY(8px);
+  background: var(--toast-bg);
+  color: var(--toast-color);
+  font-size: 12px;
+  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 100px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 220ms ease, transform 220ms ease;
+  z-index: 9999;
+  max-width: calc(100% - 32px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toast.is-visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
 /* ── Sign-in / Register Modal ── */
