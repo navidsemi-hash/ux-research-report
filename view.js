@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   document.getElementById('btn-download-pdf')?.addEventListener('click', () => window.print());
   document.getElementById('btn-print')?.addEventListener('click', () => window.print());
+  initShareToolbar();
 
   const authModal = initAuthModal(loadReport);
 
@@ -87,6 +88,32 @@ async function fetchReport(reportId) {
     throw Object.assign(new Error('Report not found.'), { isNotFound: true });
   }
   return rows[0];
+}
+
+// ─── Share Toolbar ───────────────────────────────────────────────────────────
+
+function initShareToolbar() {
+  document.getElementById('share-link')?.addEventListener('click', async function () {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+    } catch {
+      return;
+    }
+    this.classList.add('is-copied');
+    setTimeout(() => this.classList.remove('is-copied'), 1500);
+  });
+
+  document.getElementById('share-wa')?.addEventListener('click', () => {
+    window.open(`https://wa.me/?text=${encodeURIComponent('Research report: ' + window.location.href)}`, '_blank', 'noopener,noreferrer');
+  });
+
+  document.getElementById('share-tg')?.addEventListener('click', () => {
+    window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent('Research report')}`, '_blank', 'noopener,noreferrer');
+  });
+
+  document.getElementById('share-x')?.addEventListener('click', () => {
+    window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Research report')}&url=${encodeURIComponent(window.location.href)}`, '_blank', 'noopener,noreferrer');
+  });
 }
 
 // ─── Sign-in / Register Modal ───────────────────────────────────────────────
