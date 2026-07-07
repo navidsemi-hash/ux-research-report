@@ -28,21 +28,9 @@ document.addEventListener('DOMContentLoaded', async () => {
   document.getElementById('btn-download-pdf')?.addEventListener('click', () => window.print());
   document.getElementById('btn-print')?.addEventListener('click', () => window.print());
   initShareToolbar();
+  initAuthModal();
 
-  const authModal = initAuthModal(loadReport);
-
-  let oauthError = null;
-  try {
-    await authManager.init();
-  } catch (err) {
-    oauthError = err.message || 'Google sign-in failed. Please try again.';
-  }
-
-  if (!authManager.isLoggedIn()) {
-    authModal.open(oauthError);
-    return;
-  }
-
+  // Reports are public — anyone with the link sees it, no sign-in required.
   await loadReport();
 });
 
@@ -65,11 +53,13 @@ async function loadReport() {
 }
 
 async function fetchReport(reportId) {
+  // Anonymous, unauthenticated call — the RPC is security definer and reports
+  // are public to view. No Authorization header on purpose: a stale/expired
+  // token has no business affecting a public read.
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_research_report_by_id`, {
     method:  'POST',
     headers: {
-      apikey:        SUPABASE_KEY,
-      Authorization: `Bearer ${authManager.getToken()}`,
+      apikey:         SUPABASE_KEY,
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({ report_id: reportId }),
@@ -118,7 +108,7 @@ function initShareToolbar() {
 
 // ─── Sign-in / Register Modal ───────────────────────────────────────────────
 
-function initAuthModal(onSignedIn) {
+function initAuthModal(onSignedIn = () => {}) {
   const modal       = document.getElementById('auth-modal');
   const closeBtn    = document.getElementById('btn-auth-close');
   const toggleLink  = document.getElementById('auth-toggle-link');
