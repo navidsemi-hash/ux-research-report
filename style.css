@@ -484,7 +484,7 @@ body {
   display: flex;
   align-items: center;
   padding: 16px 24px;
-  background: var(--brand);
+  background: var(--accent, var(--brand));
   color: #ffffff;
 }
 .pdf-header-left { display: flex; align-items: center; gap: 8px; font-weight: 700; font-size: 14px; }
@@ -581,7 +581,7 @@ body {
   color: var(--text-secondary);
   line-height: 1.5;
 }
-.pdf-step-guidance { margin: 0; }
+.pdf-step-guidance { margin: 0; border-left-color: var(--accent, var(--brand)); }
 
 /* Element card */
 .pdf-item { padding: 0; border-bottom: none; }
