@@ -7,8 +7,8 @@
 // Companion extension: a user signs in here with the same account they
 // exported the report with.
 
-const SUPABASE_URL = 'https://ylusyowetovauthofzia.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsdXN5b3dldG92YXV0aG9memlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjkyMTYsImV4cCI6MjA5ODc0NTIxNn0.GRRftubA4W3nqbJ0-nef5TOyOnOgym22zfApCYphOZs';
+export const SUPABASE_URL = 'https://ylusyowetovauthofzia.supabase.co';
+export const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlsdXN5b3dldG92YXV0aG9memlhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxNjkyMTYsImV4cCI6MjA5ODc0NTIxNn0.GRRftubA4W3nqbJ0-nef5TOyOnOgym22zfApCYphOZs';
 
 const TOKEN_KEY = 'ux_research_authToken';
 const USER_KEY  = 'ux_research_authUser';

@@ -1,10 +1,8 @@
 // Copyright © 2026 Navid Semi (navidsemi.com). All rights reserved.
 // view.js — Public web entry point for shared research report links.
-//
-// Phase 2: auth wired up (sign-in/register/Google OAuth). Report fetch +
-// render land in Phase 3.
 
-import { authManager } from './supabase-client.js';
+import { authManager, SUPABASE_URL, SUPABASE_KEY } from './supabase-client.js';
+import { renderReport, renderError } from './render-report.js';
 
 // ─── Theme Bootstrap ─────────────────────────────────────────────────────────
 (function () {
@@ -27,21 +25,73 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (window.feather) window.feather.replace();
 
-  const authModal = initAuthModal();
+  document.getElementById('btn-download-pdf')?.addEventListener('click', () => window.print());
+  document.getElementById('btn-print')?.addEventListener('click', () => window.print());
 
-  let redirectError = null;
+  const authModal = initAuthModal(loadReport);
+
+  let oauthError = null;
   try {
     await authManager.init();
   } catch (err) {
-    redirectError = err.message || 'Google sign-in failed. Please try again.';
+    oauthError = err.message || 'Google sign-in failed. Please try again.';
   }
 
-  if (redirectError) authModal.open(redirectError);
+  if (!authManager.isLoggedIn()) {
+    authModal.open(oauthError);
+    return;
+  }
+
+  await loadReport();
 });
+
+// ─── Report Load ─────────────────────────────────────────────────────────────
+
+async function loadReport() {
+  const reportId = new URLSearchParams(window.location.search).get('id');
+  if (!reportId) {
+    renderError('invalid');
+    return;
+  }
+
+  try {
+    const report = await fetchReport(reportId);
+    renderReport(report);
+  } catch (err) {
+    console.error('[UX Research Report Fetch Error]', err);
+    renderError(err.isNotFound ? 'notfound' : 'failed');
+  }
+}
+
+async function fetchReport(reportId) {
+  const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_research_report_by_id`, {
+    method:  'POST',
+    headers: {
+      apikey:        SUPABASE_KEY,
+      Authorization: `Bearer ${authManager.getToken()}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ report_id: reportId }),
+  });
+
+  if (res.status === 404) {
+    throw Object.assign(new Error('Report not found.'), { isNotFound: true });
+  }
+  if (!res.ok) {
+    const detail = await res.text().catch(() => '');
+    throw new Error(`Supabase ${res.status}: ${detail.slice(0, 150) || res.statusText}`);
+  }
+
+  const rows = await res.json();
+  if (!Array.isArray(rows) || rows.length === 0) {
+    throw Object.assign(new Error('Report not found.'), { isNotFound: true });
+  }
+  return rows[0];
+}
 
 // ─── Sign-in / Register Modal ───────────────────────────────────────────────
 
-function initAuthModal() {
+function initAuthModal(onSignedIn) {
   const modal       = document.getElementById('auth-modal');
   const closeBtn    = document.getElementById('btn-auth-close');
   const toggleLink  = document.getElementById('auth-toggle-link');
@@ -98,6 +148,7 @@ function initAuthModal() {
       }
       if (authManager.isLoggedIn()) {
         close();
+        await onSignedIn();
       } else {
         showError('Check your inbox to confirm your email, then sign in.');
       }
