@@ -7,6 +7,13 @@ const PROJECT_TYPE_LABELS = {
   usability:  'Usability Testing',
 };
 
+// Same per-type accent system as the extension's stepper.js.
+const TYPE_ACCENTS = {
+  usability:  '#F59E0B',
+  discovery:  '#10B981',
+  competitor: 'var(--brand)', // theme-aware brand (light: indigo, dark: periwinkle)
+};
+
 const SEVERITY_META = {
   1: { key: 'critical', label: 'Critical' },
   2: { key: 'high',     label: 'High'     },
@@ -36,6 +43,10 @@ export function renderError(kind = 'failed') {
 export function renderReport(report) {
   const contentEl = document.getElementById('report-content');
   if (!contentEl) return;
+
+  document.documentElement.style.setProperty(
+    '--accent', TYPE_ACCENTS[report.project_type] ?? 'var(--brand)'
+  );
 
   const steps = coerceArray(report.steps);
 

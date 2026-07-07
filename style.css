@@ -67,7 +67,7 @@
 
   .dark-theme #report-content .pdf-section-label { color:      var(--text-muted) !important; }
   .dark-theme #report-content .pdf-prog-track    { background: var(--border)     !important; }
-  .dark-theme #report-content .pdf-prog-pct      { color:      var(--brand)      !important; }
+  .dark-theme #report-content .pdf-prog-pct      { color:      var(--accent, var(--brand)) !important; }
 
   /* Severity pills — Critical / High / Medium / Low */
   .dark-theme #report-content .pdf-stat-label { color: var(--text-secondary) !important; }
@@ -499,11 +499,11 @@ body {
 }
 .pdf-prog-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--brand), #818cf8);
+  background: var(--accent, var(--brand));
   border-radius: 100px;
   min-width: 2px;
 }
-.pdf-prog-pct { font-size: 11px; color: var(--brand); font-weight: 600; }
+.pdf-prog-pct { font-size: 11px; color: var(--accent, var(--brand)); font-weight: 600; }
 
 /* Step section */
 .pdf-pillar-section { border-top: 1px solid var(--border-soft); }
@@ -538,7 +538,7 @@ body {
   background: var(--border);
   color: var(--text-secondary);
 }
-.pdf-step-complete-icon { width: 14px; height: 14px; color: var(--sev-low-text); flex-shrink: 0; }
+.pdf-step-complete-icon { width: 14px; height: 14px; color: var(--accent, var(--brand)); flex-shrink: 0; }
 
 .pdf-items { padding: 14px 24px 18px; display: flex; flex-direction: column; gap: 14px; }
 
@@ -599,15 +599,15 @@ body {
 .pdf-el-link a { color: var(--brand); font-weight: 600; word-break: break-all; }
 .pdf-el-link a:hover { text-decoration: underline; }
 
-/* Rating / severity pill */
+/* Rating / severity pill — accented per report type */
 .pdf-badge {
   display: inline-block;
   font-size: 11px;
   font-weight: 700;
   padding: 3px 10px;
   border-radius: 100px;
-  background: var(--brand-light);
-  color: var(--brand);
+  background: color-mix(in srgb, var(--accent, var(--brand)) 14%, transparent);
+  color: var(--accent, var(--brand));
 }
 .pdf-sev-pill {
   display: inline-block;
@@ -617,6 +617,7 @@ body {
   text-transform: uppercase;
   padding: 3px 10px;
   border-radius: 100px;
+  border: 1px solid var(--accent, var(--brand));
   margin-bottom: 6px;
 }
 .pdf-sev-pill--critical { background: var(--sev-critical-bg); color: var(--sev-critical-text); }
