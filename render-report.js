@@ -2,17 +2,41 @@
 // render-report.js — Renders a fetched research report into #report-content.
 
 const PROJECT_TYPE_LABELS = {
-  competitor: 'Competitor Research',
-  discovery:  'Discovery Research',
-  usability:  'Usability Testing',
+  competitor:  'Competitor & Market Research',
+  discovery:   'Generative / Discovery',
+  survey:      'Survey & Quantitative',
+  diary:       'Diary Study',
+  cardsorting: 'Card Sorting & IA',
+  concept:     'Concept Testing',
+  usability:   'Usability Testing',
 };
 
-// Same per-type accent system as the extension's stepper.js.
+// Same per-type accent system as the extension's stepper.js — each value is
+// the exact icon color (not the pale badge background behind it) from that
+// type's picker card (tools/research/research-types.js's iconColor,
+// extension repo), not an approximation. iconBg was the first candidate
+// (it's literally "the colored square behind each icon"), but every one of
+// its values is a pale tint meant to sit behind a dark icon — used as a
+// solid fill under .pdf-header-bar's hardcoded white text (and the
+// extension's white-text mark-done button), it's close to illegible.
+// iconColor is the saturated color already designed to read on a light
+// background, so it holds up as a solid accent fill too.
 const TYPE_ACCENTS = {
-  usability:  '#F59E0B',
-  discovery:  '#10B981',
-  competitor: 'var(--brand)', // theme-aware brand (light: indigo, dark: periwinkle)
+  competitor:  '#185FA5',
+  discovery:   '#0F6E56',
+  survey:      '#6B21A8',
+  diary:       '#9F1239',
+  cardsorting: '#3730A3',
+  concept:     '#155E75',
+  usability:   '#854F0B',
 };
+
+// Shared by renderReport() (browser tab title) and buildHeader() (report
+// h1 + the colored banner above it) so both always agree, rather than each
+// computing the "unknown type" fallback independently.
+function typeLabelFor(projectType) {
+  return PROJECT_TYPE_LABELS[projectType] || 'Research Report';
+}
 
 const SEVERITY_META = {
   1: { key: 'critical', label: 'Critical' },
@@ -44,6 +68,8 @@ export function renderReport(report) {
   const contentEl = document.getElementById('report-content');
   if (!contentEl) return;
 
+  document.title = typeLabelFor(report.project_type);
+
   document.documentElement.style.setProperty(
     '--accent', TYPE_ACCENTS[report.project_type] ?? 'var(--brand)'
   );
@@ -65,7 +91,7 @@ export function renderReport(report) {
 // ─── Header ──────────────────────────────────────────────────────────────────
 
 function buildHeader(report) {
-  const typeLabel = PROJECT_TYPE_LABELS[report.project_type] || 'Research Report';
+  const typeLabel = typeLabelFor(report.project_type);
 
   const rows = [];
   if (report.project_name)    rows.push(metaRow('Project Name', report.project_name));
