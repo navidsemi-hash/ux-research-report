@@ -21,6 +21,11 @@ const PROJECT_TYPE_LABELS = {
 // extension's white-text mark-done button), it's close to illegible.
 // iconColor is the saturated color already designed to read on a light
 // background, so it holds up as a solid accent fill too.
+//
+// No entry for custom_-prefixed project types (the extension's "Create your
+// own research type") — deliberately: they have no assigned color, so
+// TYPE_ACCENTS[report.project_type] ?? 'var(--brand)' below already falls
+// through to the extension's default purple with no extra branching needed.
 const TYPE_ACCENTS = {
   competitor:  '#185FA5',
   discovery:   '#0F6E56',
@@ -34,8 +39,20 @@ const TYPE_ACCENTS = {
 // Shared by renderReport() (browser tab title) and buildHeader() (report
 // h1 + the colored banner above it) so both always agree, rather than each
 // computing the "unknown type" fallback independently.
-function typeLabelFor(projectType) {
-  return PROJECT_TYPE_LABELS[projectType] || 'Research Report';
+//
+// Custom types (project_type like 'custom_1234567890') have no
+// PROJECT_TYPE_LABELS entry — there's no fixed catalog of them the way
+// there is for the 7 built-in types — so their own chosen name travels in
+// project_name instead (the extension's research-export.js populates it
+// only for custom types; built-in exports leave it null, so this branch
+// never fires for them). Falls back to the generic label only if somehow
+// neither is available.
+function typeLabelFor(projectType, projectName) {
+  if (PROJECT_TYPE_LABELS[projectType]) return PROJECT_TYPE_LABELS[projectType];
+  if (typeof projectType === 'string' && projectType.startsWith('custom_') && projectName) {
+    return projectName;
+  }
+  return 'Research Report';
 }
 
 const SEVERITY_META = {
@@ -68,7 +85,7 @@ export function renderReport(report) {
   const contentEl = document.getElementById('report-content');
   if (!contentEl) return;
 
-  document.title = typeLabelFor(report.project_type);
+  document.title = typeLabelFor(report.project_type, report.project_name);
 
   document.documentElement.style.setProperty(
     '--accent', TYPE_ACCENTS[report.project_type] ?? 'var(--brand)'
@@ -91,7 +108,7 @@ export function renderReport(report) {
 // ─── Header ──────────────────────────────────────────────────────────────────
 
 function buildHeader(report) {
-  const typeLabel = typeLabelFor(report.project_type);
+  const typeLabel = typeLabelFor(report.project_type, report.project_name);
 
   const rows = [];
   if (report.project_name)    rows.push(metaRow('Project Name', report.project_name));
