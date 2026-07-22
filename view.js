@@ -25,7 +25,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (window.feather) window.feather.replace();
 
-  document.getElementById('btn-download-pdf')?.addEventListener('click', () => window.print());
+  document.getElementById('btn-download-pdf')?.addEventListener('click', downloadReportHtml);
   document.getElementById('btn-print')?.addEventListener('click', () => window.print());
   initShareToolbar();
   initAuthModal();
@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // ─── Report Load ─────────────────────────────────────────────────────────────
 
+let _currentReport = null;
+
 async function loadReport() {
   const reportId = new URLSearchParams(window.location.search).get('id');
   if (!reportId) {
@@ -51,10 +53,58 @@ async function loadReport() {
 
   try {
     const report = await fetchReport(reportId);
+    _currentReport = report;
     renderReport(report);
   } catch (err) {
     console.error('[UX Research Report Fetch Error]', err);
     renderError(err.isNotFound ? 'notfound' : 'failed');
+  }
+}
+
+// ─── Direct HTML Download ────────────────────────────────────────────────────
+// Replaces the old window.print() flow: no print dialog, no new tab — the
+// rendered #report-content markup is bundled with style.css into a single
+// self-contained file and saved straight to disk via the blob/anchor pattern
+// used elsewhere in the extension (see research-export.js's downloadJson).
+// The saved file always renders light, matching the existing @media print
+// rules — it's built without the dark-theme class regardless of the current
+// on-screen theme.
+
+async function downloadReportHtml() {
+  const contentEl = document.getElementById('report-content');
+  if (!_currentReport || !contentEl) return;
+
+  try {
+    const cssText = await fetch('style.css').then(res => res.text());
+    const typeLabel = document.title || 'UX Research Report';
+
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>${typeLabel}</title>
+<style>${cssText}</style>
+</head>
+<body>
+<div class="report-page-body"><div id="report-content">${contentEl.innerHTML}</div></div>
+</body>
+</html>`;
+
+    const blob = new Blob([html], { type: 'text/html' });
+    const url  = URL.createObjectURL(blob);
+    const date = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const a = Object.assign(document.createElement('a'), {
+      href:     url,
+      download: `ux-research-${_currentReport.project_type}-${date}.html`,
+      style:    'display:none',
+    });
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  } catch (err) {
+    console.error('[UX Research Report Download Error]', err);
+    toast('Download failed. Please try again.');
   }
 }
 
