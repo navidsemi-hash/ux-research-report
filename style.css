@@ -9,7 +9,6 @@
   --text-primary:   #0d1117;
   --text-secondary: #505973;
   --text-muted:     #9299b0;
-  --text-checked:   #b8bdd1;
   --border:         #e0e3ef;
   --border-soft:    #eceef6;
   --border-hover:   #c7cbdf;
@@ -29,7 +28,6 @@
   --text-primary:   #f1f5f9;
   --text-secondary: #94a3b8;
   --text-muted:     #64748b;
-  --text-checked:   #475569;
   --border:         #334155;
   --border-soft:    #243552;
   --border-hover:   #475569;
@@ -87,9 +85,7 @@
 
   /* Checklist / element rows */
   .dark-theme #report-content .pdf-item             { border-bottom-color: var(--border-soft)   !important; }
-  .dark-theme #report-content .pdf-item.is-checked  { background:          var(--bg-base)       !important; }
   .dark-theme #report-content .pdf-item-label       { color:               var(--text-primary)  !important; }
-  .dark-theme #report-content .pdf-item.is-checked .pdf-item-label { color: var(--text-checked) !important; }
   .dark-theme #report-content .pdf-check            { border-color: var(--border);     background: var(--bg-surface) !important; }
   .dark-theme #report-content .pdf-item-note        { background:   var(--bg-base)     !important; color: var(--text-secondary) !important; }
   .dark-theme #report-content .pdf-screenshot img   { border-color: var(--border)      !important; }
@@ -594,7 +590,6 @@ body {
 .pdf-checklist { list-style: none; display: flex; flex-direction: column; gap: 6px; }
 .pdf-checklist-row { display: flex; align-items: flex-start; gap: 8px; font-size: 12.5px; }
 .pdf-checklist-box { flex-shrink: 0; }
-.pdf-checklist-row.is-checked .pdf-checklist-text { text-decoration: line-through; color: var(--text-checked); }
 
 /* Table */
 .pdf-table-wrap { overflow-x: auto; }
