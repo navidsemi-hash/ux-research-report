@@ -198,6 +198,9 @@ body {
 .toolbar-btn--ghost:hover  { background: var(--bg-hover); border-color: var(--border-hover); }
 .toolbar-btn--ghost:active { opacity: .82; }
 .toolbar-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
+/* .toolbar-btn's own display: inline-flex otherwise beats the UA [hidden]
+   rule (equal specificity, author sheet wins) — this makes hidden stick. */
+.toolbar-btn[hidden] { display: none; }
 
 .toolbar-divider {
   width: 1px;

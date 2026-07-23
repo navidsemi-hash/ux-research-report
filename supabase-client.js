@@ -42,6 +42,7 @@ export const authManager = {
   _ready: false,
   _isPremium:               false,
   _premiumStatusLoadFailed: false,
+  _premiumStatusChecked:    false,
   _trialStartedAt:          null,
 
   // ── Restore persisted session, or capture one from a Google OAuth redirect ──
@@ -113,6 +114,7 @@ export const authManager = {
     this._user  = null;
     this._isPremium               = false;
     this._premiumStatusLoadFailed = false;
+    this._premiumStatusChecked    = false;
     this._trialStartedAt          = null;
     storage.remove(TOKEN_KEY);
     storage.remove(USER_KEY);
@@ -127,7 +129,14 @@ export const authManager = {
   // hasProToolAccess(): true for actual premium subscribers, true during the
   // 30-day trial window, and true for grandfathered pre-trial accounts
   // (trial_started_at IS NULL — the account predates the trial feature).
+  //
+  // Fails closed until _checkPremiumStatus() has actually resolved once —
+  // _premiumStatusChecked is what distinguishes a real grandfathered account
+  // (fetch succeeded, row's trial_started_at genuinely NULL) from "we never
+  // fetched" (logged-out visitor, or a fetch that hasn't run yet), since both
+  // otherwise leave _trialStartedAt at its unset default of null.
   hasProToolAccess() {
+    if (!this._premiumStatusChecked) return false;
     if (this._premiumStatusLoadFailed) return false;
     if (this._isPremium) return true;
     if (this._trialStartedAt === null) return true; // grandfathered pre-trial accounts
@@ -142,7 +151,15 @@ export const authManager = {
   async _checkPremiumStatus() {
     const token  = this._token?.access_token;
     const userId = this._user?.id;
-    if (!token || !userId) { this._isPremium = false; return; }
+    if (!token || !userId) {
+      // No token/user to check against — same "we don't know ANYTHING"
+      // failure as the branches below, so it fails closed the same way.
+      this._premiumStatusLoadFailed = true;
+      this._isPremium               = false;
+      this._trialStartedAt          = null;
+      this._premiumStatusChecked    = true;
+      return;
+    }
     this._premiumStatusLoadFailed = false;
     try {
       const res = await fetch(
@@ -155,16 +172,19 @@ export const authManager = {
         this._premiumStatusLoadFailed = true;
         this._isPremium      = false;
         this._trialStartedAt = null;
+        this._premiumStatusChecked = true;
         return;
       }
       const rows = await res.json();
       const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
       this._isPremium      = row?.is_premium === true;
       this._trialStartedAt = row?.trial_started_at ?? null;
+      this._premiumStatusChecked = true;
     } catch {
       this._premiumStatusLoadFailed = true;
       this._isPremium      = false;
       this._trialStartedAt = null;
+      this._premiumStatusChecked = true;
     }
   },
 

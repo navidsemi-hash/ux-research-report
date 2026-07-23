@@ -37,6 +37,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   const authModal = initAuthModal();
   const openPaywall = () => authModal.open(authManager.isLoggedIn() ? 'upgrade' : 'signin');
 
+  // Persistent entry point into the auth modal — independent of the paywall
+  // triggers below, which only open it when isPremium is false. Without this,
+  // an anonymous visitor who (correctly, once signed in) would still be
+  // gated has no way to reach the sign-in form until they hit a gated action.
+  const signInBtn = document.getElementById('btn-sign-in');
+  if (authManager.isLoggedIn()) {
+    signInBtn?.setAttribute('hidden', '');
+  } else {
+    signInBtn?.addEventListener('click', () => authModal.open('signin'));
+  }
+
   initShareToolbar(isPremium, openPaywall);
   wireToolbarActions(isPremium, openPaywall);
 
