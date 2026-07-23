@@ -14,6 +14,9 @@ import { renderReport, renderError } from './render-report.js';
   } catch (_) {}
 }());
 
+const LEMONSQUEEZY_CHECKOUT_URL =
+  'https://navidsemi.lemonsqueezy.com/checkout/buy/4bcace87-55a0-40b7-8388-2ceef27a40c1';
+
 document.addEventListener('DOMContentLoaded', async () => {
   try {
     const isDark = localStorage.getItem('ux_research_theme') === 'dark';
@@ -25,10 +28,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   if (window.feather) window.feather.replace();
 
-  document.getElementById('btn-download-pdf')?.addEventListener('click', downloadReportHtml);
-  document.getElementById('btn-print')?.addEventListener('click', () => window.print());
-  initShareToolbar();
-  initAuthModal();
+  // Pro status is about the signed-in VIEWER, not the report's original
+  // author — known as soon as auth restores, independent of which report
+  // gets fetched below.
+  await authManager.init();
+  const isPremium = authManager.hasProToolAccess();
+
+  const authModal = initAuthModal();
+  const openPaywall = () => authModal.open(authManager.isLoggedIn() ? 'upgrade' : 'signin');
+
+  initShareToolbar(isPremium, openPaywall);
+  wireToolbarActions(isPremium, openPaywall);
 
   document.getElementById('btn-add-to-chrome')?.addEventListener('click', () => {
     // TODO: replace with live Chrome Web Store URL when extension is published
@@ -36,15 +46,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     toast('UX Research Companion is coming soon to the Chrome Web Store');
   });
 
-  // Reports are public — anyone with the link sees it, no sign-in required.
-  await loadReport();
+  // Reports are public to fetch — anyone with the link can load the record.
+  // Whether the full body renders or the gated preview does depends on the
+  // viewer's own Pro status above, not on anything report-specific.
+  await loadReport(isPremium, openPaywall);
 });
 
 // ─── Report Load ─────────────────────────────────────────────────────────────
 
 let _currentReport = null;
 
-async function loadReport() {
+async function loadReport(isPremium, openPaywall) {
   const reportId = new URLSearchParams(window.location.search).get('id');
   if (!reportId) {
     renderError('invalid');
@@ -54,11 +66,29 @@ async function loadReport() {
   try {
     const report = await fetchReport(reportId);
     _currentReport = report;
-    renderReport(report);
+    renderReport(report, isPremium);
+    if (!isPremium) {
+      document.getElementById('premium-blurred-report-zone')?.classList.add('gated');
+      document.getElementById('premium-blurred-report-zone')?.addEventListener('click', openPaywall);
+    }
   } catch (err) {
     console.error('[UX Research Report Fetch Error]', err);
     renderError(err.isNotFound ? 'notfound' : 'failed');
   }
+}
+
+// Toolbar download/print — gated the same way share buttons are (see
+// initShareToolbar): intercept the click and open the paywall instead of
+// running the real action, rather than disabling the buttons outright.
+function wireToolbarActions(isPremium, openPaywall) {
+  document.getElementById('btn-download-pdf')?.addEventListener('click', e => {
+    if (!isPremium) { e.preventDefault(); openPaywall(); return; }
+    downloadReportHtml();
+  });
+  document.getElementById('btn-print')?.addEventListener('click', e => {
+    if (!isPremium) { e.preventDefault(); openPaywall(); return; }
+    window.print();
+  });
 }
 
 // ─── Direct HTML Download ────────────────────────────────────────────────────
@@ -150,9 +180,13 @@ function toast(message, durationMs = 3000) {
 }
 
 // ─── Share Toolbar ───────────────────────────────────────────────────────────
+// Gated the same way toolbar download/print are (see wireToolbarActions):
+// intercept the click and open the paywall instead of running the real
+// share action.
 
-function initShareToolbar() {
+function initShareToolbar(isPremium, openPaywall) {
   document.getElementById('share-link')?.addEventListener('click', async function () {
+    if (!isPremium) { openPaywall(); return; }
     try {
       await navigator.clipboard.writeText(window.location.href);
     } catch {
@@ -163,35 +197,44 @@ function initShareToolbar() {
   });
 
   document.getElementById('share-wa')?.addEventListener('click', () => {
+    if (!isPremium) { openPaywall(); return; }
     window.open(`https://wa.me/?text=${encodeURIComponent('Research report: ' + window.location.href)}`, '_blank', 'noopener,noreferrer');
   });
 
   document.getElementById('share-tg')?.addEventListener('click', () => {
+    if (!isPremium) { openPaywall(); return; }
     window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent('Research report')}`, '_blank', 'noopener,noreferrer');
   });
 
   document.getElementById('share-x')?.addEventListener('click', () => {
+    if (!isPremium) { openPaywall(); return; }
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Research report')}&url=${encodeURIComponent(window.location.href)}`, '_blank', 'noopener,noreferrer');
   });
 }
 
-// ─── Sign-in / Register Modal ───────────────────────────────────────────────
+// ─── Auth / Upgrade Modal ────────────────────────────────────────────────────
+// Two states in one modal, same shape as ux-audit-report's paywall: 'signin'
+// for a logged-out visitor, 'upgrade' for a visitor who's signed in but not
+// Pro/trial. openPaywall() in DOMContentLoaded picks which one to show.
 
-function initAuthModal(onSignedIn = () => {}) {
-  const modal       = document.getElementById('auth-modal');
-  const closeBtn    = document.getElementById('btn-auth-close');
-  const toggleLink  = document.getElementById('auth-toggle-link');
-  const toggleCopy  = document.getElementById('auth-toggle-copy');
-  const titleEl     = document.getElementById('auth-modal-title');
-  const submitBtn   = document.getElementById('auth-submit-btn');
-  const googleBtn   = document.getElementById('auth-google-btn');
-  const errorEl     = document.getElementById('auth-error');
-  const emailInput  = document.getElementById('auth-email');
+function initAuthModal() {
+  const modal        = document.getElementById('auth-modal');
+  const closeBtn      = document.getElementById('btn-auth-close');
+  const viewSignin    = document.getElementById('auth-view-signin');
+  const viewUpgrade   = document.getElementById('auth-view-upgrade');
+  const toggleLink    = document.getElementById('auth-toggle-link');
+  const toggleCopy    = document.getElementById('auth-toggle-copy');
+  const titleEl       = document.getElementById('auth-modal-title');
+  const submitBtn     = document.getElementById('auth-submit-btn');
+  const googleBtn     = document.getElementById('auth-google-btn');
+  const errorEl       = document.getElementById('auth-error');
+  const emailInput    = document.getElementById('auth-email');
   const passwordInput = document.getElementById('auth-password');
+  const upgradeBtn    = document.getElementById('auth-upgrade-btn');
 
   let mode = 'signin';
 
-  function render() {
+  function renderSigninMode() {
     const isRegister = mode === 'register';
     titleEl.textContent    = isRegister ? 'Create your account' : 'Sign in to view this report';
     submitBtn.textContent  = isRegister ? 'Create account' : 'Sign in';
@@ -203,10 +246,16 @@ function initAuthModal(onSignedIn = () => {}) {
     if (errorEl) errorEl.textContent = message || '';
   }
 
-  function open(message) {
+  // state: 'signin' (default) or 'upgrade'
+  function open(state = 'signin') {
+    const showUpgrade = state === 'upgrade';
+    viewSignin?.toggleAttribute('hidden', showUpgrade);
+    viewUpgrade?.toggleAttribute('hidden', !showUpgrade);
     modal?.setAttribute('aria-hidden', 'false');
-    showError(message);
-    requestAnimationFrame(() => emailInput?.focus());
+    if (!showUpgrade) {
+      showError('');
+      requestAnimationFrame(() => emailInput?.focus());
+    }
   }
 
   function close() {
@@ -214,6 +263,12 @@ function initAuthModal(onSignedIn = () => {}) {
     showError('');
   }
 
+  // On success, reload rather than trying to re-render in place — matches
+  // ux-audit-report's own _doAuth(). authManager.signIn/signUp() already
+  // re-checked premium status internally (supabase-client.js's _persist()),
+  // so the reload's fresh init() call picks up the correct state cleanly:
+  // unlocks the report if now Pro/trial, or re-shows the gate with the
+  // modal now correctly resolving to 'upgrade' (isLoggedIn() is true) if not.
   async function submit() {
     const email    = emailInput?.value.trim() ?? '';
     const password = passwordInput?.value ?? '';
@@ -234,7 +289,7 @@ function initAuthModal(onSignedIn = () => {}) {
       }
       if (authManager.isLoggedIn()) {
         close();
-        await onSignedIn();
+        window.location.reload();
       } else {
         showError('Check your inbox to confirm your email, then sign in.');
       }
@@ -242,7 +297,7 @@ function initAuthModal(onSignedIn = () => {}) {
       showError(err.message || 'Something went wrong. Please try again.');
     } finally {
       submitBtn.disabled = false;
-      render();
+      renderSigninMode();
     }
   }
 
@@ -255,7 +310,7 @@ function initAuthModal(onSignedIn = () => {}) {
   toggleLink?.addEventListener('click', () => {
     mode = mode === 'register' ? 'signin' : 'register';
     showError('');
-    render();
+    renderSigninMode();
   });
 
   closeBtn?.addEventListener('click', close);
@@ -269,6 +324,15 @@ function initAuthModal(onSignedIn = () => {}) {
 
   [emailInput, passwordInput].forEach(input => {
     input?.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
+  });
+
+  upgradeBtn?.addEventListener('click', () => {
+    const user   = authManager.getUser();
+    const params = new URLSearchParams();
+    if (user?.email) params.set('checkout[email]', user.email);
+    if (user?.id)    params.set('checkout[custom][user_id]', user.id);
+    const qs = params.toString();
+    window.open(LEMONSQUEEZY_CHECKOUT_URL + (qs ? '?' + qs : ''), '_blank', 'noopener,noreferrer');
   });
 
   return { open, close };

@@ -40,6 +40,9 @@ export const authManager = {
   _token: null,
   _user:  null,
   _ready: false,
+  _isPremium:               false,
+  _premiumStatusLoadFailed: false,
+  _trialStartedAt:          null,
 
   // ── Restore persisted session, or capture one from a Google OAuth redirect ──
   async init() {
@@ -55,6 +58,11 @@ export const authManager = {
       this._token = token;
       this._user  = user ?? null;
       await this._refreshSession();
+      // _refreshSession() only re-persists (and so only re-checks premium
+      // status) when the token is actually expiring soon — a still-valid
+      // token returns early without touching premium state, so this covers
+      // the common "returning visitor, token still fresh" case too.
+      await this._checkPremiumStatus();
     }
   },
 
@@ -67,7 +75,7 @@ export const authManager = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || data.error_description || 'Sign-up failed.');
-    if (data.access_token) this._persistFromTokenResponse(data);
+    if (data.access_token) await this._persistFromTokenResponse(data);
     return data;
   },
 
@@ -80,7 +88,7 @@ export const authManager = {
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.msg || data.error_description || 'Sign-in failed.');
-    this._persistFromTokenResponse(data);
+    await this._persistFromTokenResponse(data);
     return data;
   },
 
@@ -103,6 +111,9 @@ export const authManager = {
     }
     this._token = null;
     this._user  = null;
+    this._isPremium               = false;
+    this._premiumStatusLoadFailed = false;
+    this._trialStartedAt          = null;
     storage.remove(TOKEN_KEY);
     storage.remove(USER_KEY);
   },
@@ -111,6 +122,51 @@ export const authManager = {
   getUser()    { return this._user ?? null; },
   getToken()   { return this._token?.access_token ?? null; },
   isLoggedIn() { return !!this._token?.access_token; },
+
+  // Real Pro gate — same logic as the extension's supabase-client.js
+  // hasProToolAccess(): true for actual premium subscribers, true during the
+  // 30-day trial window, and true for grandfathered pre-trial accounts
+  // (trial_started_at IS NULL — the account predates the trial feature).
+  hasProToolAccess() {
+    if (this._premiumStatusLoadFailed) return false;
+    if (this._isPremium) return true;
+    if (this._trialStartedAt === null) return true; // grandfathered pre-trial accounts
+    const trialElapsedMs = Date.now() - new Date(this._trialStartedAt).getTime();
+    return trialElapsedMs < 30 * 24 * 60 * 60 * 1000;
+  },
+
+  // ── Internal: fetch premium status from the profiles table ──────────────────
+  // Same query shape as the extension's _checkPremiumStatus() — only the two
+  // columns actually needed here (is_premium, trial_started_at); this viewer
+  // has no trial-countdown UI or customer-portal link.
+  async _checkPremiumStatus() {
+    const token  = this._token?.access_token;
+    const userId = this._user?.id;
+    if (!token || !userId) { this._isPremium = false; return; }
+    this._premiumStatusLoadFailed = false;
+    try {
+      const res = await fetch(
+        `${SUPABASE_URL}/rest/v1/profiles?id=eq.${encodeURIComponent(userId)}&select=is_premium,trial_started_at&limit=1`,
+        { headers: { apikey: SUPABASE_KEY, Authorization: `Bearer ${token}` } }
+      );
+      if (!res.ok) {
+        // A failed fetch means we don't know ANYTHING about the user's
+        // status — fail closed rather than keep a stale cached value.
+        this._premiumStatusLoadFailed = true;
+        this._isPremium      = false;
+        this._trialStartedAt = null;
+        return;
+      }
+      const rows = await res.json();
+      const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+      this._isPremium      = row?.is_premium === true;
+      this._trialStartedAt = row?.trial_started_at ?? null;
+    } catch {
+      this._premiumStatusLoadFailed = true;
+      this._isPremium      = false;
+      this._trialStartedAt = null;
+    }
+  },
 
   // ── Internal: pick up an access_token left in the URL hash by Google's
   // redirect back from Supabase, persist it, and scrub the hash from the
@@ -137,7 +193,7 @@ export const authManager = {
     };
 
     const user = await this._fetchUser(accessToken);
-    this._persist(token, user);
+    await this._persist(token, user);
     return true;
   },
 
@@ -162,7 +218,7 @@ export const authManager = {
         await this.signOut();
         return;
       }
-      this._persistFromTokenResponse(data);
+      await this._persistFromTokenResponse(data);
     } catch {
       // Network error — don't sign out; user may be offline.
     }
@@ -179,16 +235,20 @@ export const authManager = {
   },
 
   // ── Internal: split a Supabase token-endpoint response into token + user ────
-  _persistFromTokenResponse(data) {
+  async _persistFromTokenResponse(data) {
     const { user, ...token } = data;
     if (!token.expires_at) token.expires_at = _jwtExp(token.access_token);
-    this._persist(token, user ?? null);
+    await this._persist(token, user ?? null);
   },
 
-  _persist(token, user) {
+  // Single point every path (signUp, signIn, _refreshSession via
+  // _persistFromTokenResponse, and _handleOAuthRedirect directly) funnels
+  // through — checking premium status here covers all of them uniformly.
+  async _persist(token, user) {
     this._token = token;
     this._user  = user;
     storage.set(TOKEN_KEY, token);
     storage.set(USER_KEY, user);
+    await this._checkPremiumStatus();
   },
 };
