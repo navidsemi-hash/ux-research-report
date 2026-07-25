@@ -34,6 +34,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   await authManager.init();
   const isPremium = authManager.hasProToolAccess();
 
+  // TEMP DIAGNOSTIC — remove once the Pro-gating bug is confirmed fixed.
+  // Distinguishes "no session ever persisted on this origin" from "a
+  // session is in localStorage but init() failed to restore it into
+  // authManager" from "restored fine, hasProToolAccess() itself is wrong."
+  console.log('[ux-research-report:auth-diagnostic]', {
+    userId:           authManager.getUser()?.id ?? null,
+    isLoggedIn:       authManager.isLoggedIn(),
+    hasProToolAccess: isPremium,
+    storedTokenRaw:   localStorage.getItem('ux_research_authToken'),
+    storedUserRaw:    localStorage.getItem('ux_research_authUser'),
+  });
+
   const authModal = initAuthModal();
   // Signed-out visitors never reach this page — that's handled upstream,
   // before the viewer loads — so every gated action here means "signed in,
