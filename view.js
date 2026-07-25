@@ -34,27 +34,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   await authManager.init();
   const isPremium = authManager.hasProToolAccess();
 
-  // TEMP DIAGNOSTIC — remove once the Pro-gating bug is confirmed fixed.
-  // Distinguishes "no session ever persisted on this origin" from "a
-  // session is in localStorage but init() failed to restore it into
-  // authManager" from "restored fine, hasProToolAccess() itself is wrong."
-  console.log('[ux-research-report:auth-diagnostic]', {
-    userId:           authManager.getUser()?.id ?? null,
-    isLoggedIn:       authManager.isLoggedIn(),
-    hasProToolAccess: isPremium,
-    storedTokenRaw:   localStorage.getItem('ux_research_authToken'),
-    storedUserRaw:    localStorage.getItem('ux_research_authUser'),
-  });
-
   const authModal = initAuthModal();
-  // Signed-out visitors never reach this page — that's handled upstream,
-  // before the viewer loads — so every gated action here means "signed in,
-  // not Pro." The paywall is always the upgrade view, never sign-in.
-  const openPaywall = () => authModal.open('upgrade');
+  // The extension's session lives in chrome.storage, which this page can't
+  // read — a visitor here may genuinely have no session at all, same as the
+  // audit viewer's own web page. So the paywall picks between the two modal
+  // views the same way audit's does: signed-out gets the sign-in view,
+  // signed-in-but-not-Pro gets upgrade.
+  const openPaywall = () => authModal.open(authManager.isLoggedIn() ? 'upgrade' : 'signin');
 
-  // Signed-out visitors never reach this page, so there is no in-page
-  // sign-in entry point to wire up — the toolbar button stays hidden.
-  document.getElementById('btn-sign-in')?.setAttribute('hidden', '');
+  // Persistent entry point into the auth modal — independent of the paywall
+  // triggers below, which only open it when isPremium is false. Without this,
+  // a signed-out visitor has no way to reach the sign-in form until they hit
+  // a gated action.
+  const signInBtn = document.getElementById('btn-sign-in');
+  if (authManager.isLoggedIn()) {
+    signInBtn?.setAttribute('hidden', '');
+  } else {
+    signInBtn?.addEventListener('click', () => authModal.open('signin'));
+  }
 
   initShareToolbar(isPremium, openPaywall);
   wireToolbarActions(isPremium, openPaywall);
