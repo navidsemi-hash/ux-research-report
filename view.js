@@ -35,23 +35,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   const isPremium = authManager.hasProToolAccess();
 
   const authModal = initAuthModal();
-  const openPaywall = () => authModal.open(authManager.isLoggedIn() ? 'upgrade' : 'signin');
+  // Signed-out visitors never reach this page — that's handled upstream,
+  // before the viewer loads — so every gated action here means "signed in,
+  // not Pro." The paywall is always the upgrade view, never sign-in.
+  const openPaywall = () => authModal.open('upgrade');
 
-  // Persistent entry point into the auth modal — independent of the paywall
-  // triggers below, which only open it when isPremium is false. Without this,
-  // an anonymous visitor who (correctly, once signed in) would still be
-  // gated has no way to reach the sign-in form until they hit a gated action.
-  const signInBtn = document.getElementById('btn-sign-in');
-  if (authManager.isLoggedIn()) {
-    signInBtn?.setAttribute('hidden', '');
-  } else {
-    signInBtn?.addEventListener('click', () => authModal.open('signin'));
-  }
+  // Signed-out visitors never reach this page, so there is no in-page
+  // sign-in entry point to wire up — the toolbar button stays hidden.
+  document.getElementById('btn-sign-in')?.setAttribute('hidden', '');
 
   initShareToolbar(isPremium, openPaywall);
   wireToolbarActions(isPremium, openPaywall);
 
   document.getElementById('btn-add-to-chrome')?.addEventListener('click', () => {
+    if (!isPremium) { openPaywall(); return; }
     // TODO: replace with live Chrome Web Store URL when extension is published
     // window.open('https://chromewebstore.google.com/detail/ux-research-companion/<id>', '_blank');
     toast('UX Research Companion is coming soon to the Chrome Web Store');
