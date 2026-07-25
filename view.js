@@ -1,8 +1,14 @@
 // Copyright © 2026 Navid Semi (navidsemi.com). All rights reserved.
 // view.js — Public web entry point for shared research report links.
 
-import { authManager, SUPABASE_URL, SUPABASE_KEY } from './supabase-client.js';
-import { renderReport, renderError } from './render-report.js';
+// Cache-busted import specifiers (?v=2) — GitHub Pages serves no custom
+// Cache-Control/ETag headers we can tune from this repo, so a browser that
+// already has these modules in its HTTP cache from before a fix shipped
+// would otherwise keep serving the stale copy indefinitely. Bump the ?v=
+// on these two lines (and on view.html's <script> and <link> tags) whenever
+// a future fix here needs to force a refetch.
+import { authManager, SUPABASE_URL, SUPABASE_KEY } from './supabase-client.js?v=2';
+import { renderReport, renderError } from './render-report.js?v=2';
 
 // ─── Theme Bootstrap ─────────────────────────────────────────────────────────
 (function () {
@@ -122,7 +128,7 @@ async function downloadReportHtml() {
   if (!_currentReport || !contentEl) return;
 
   try {
-    const cssText = await fetch('style.css').then(res => res.text());
+    const cssText = await fetch('style.css?v=2').then(res => res.text());
     const typeLabel = document.title || 'UX Research Report';
 
     const html = `<!DOCTYPE html>
