@@ -41,6 +41,7 @@ export const authManager = {
   _isPremium:               false,
   _premiumStatusLoadFailed: false,
   _trialStartedAt:          null,
+  _statusChecked:           false,
 
   // ── Restore persisted session, or capture one from a Google OAuth redirect ──
   async init() {
@@ -109,6 +110,7 @@ export const authManager = {
     this._isPremium               = false;
     this._premiumStatusLoadFailed = false;
     this._trialStartedAt          = null;
+    this._statusChecked           = false;
     storage.remove(SESSION_KEY);
   },
 
@@ -121,10 +123,17 @@ export const authManager = {
   // hasProToolAccess(): true for actual premium subscribers, true during the
   // 30-day trial window, and true for grandfathered pre-trial accounts
   // (trial_started_at IS NULL — the account predates the trial feature).
+  //
+  // The trial_started_at-IS-NULL branch below is also what a visitor whose
+  // status was never checked at all looks like by default (anonymous, or a
+  // session that just got invalidated) — _statusChecked is what tells those
+  // two "null" cases apart. It's only set true once _checkPremiumStatus()
+  // actually reaches the profiles table, so a never-checked visitor reads as
+  // not-premium here instead of silently inheriting the grandfathered path.
   hasProToolAccess() {
     if (this._premiumStatusLoadFailed) return false;
     if (this._isPremium) return true;
-    if (this._trialStartedAt === null) return true; // grandfathered pre-trial accounts
+    if (this._trialStartedAt === null) return this._statusChecked; // grandfathered — only once confirmed, not merely unchecked
     const trialElapsedMs = Date.now() - new Date(this._trialStartedAt).getTime();
     return trialElapsedMs < 30 * 24 * 60 * 60 * 1000;
   },
@@ -136,6 +145,11 @@ export const authManager = {
   async _checkPremiumStatus() {
     const token  = this._session?.access_token;
     const userId = this._session?.user?.id;
+    // No token/user to query against — leave _statusChecked at its current
+    // value (false unless a prior call already confirmed a real profile row)
+    // rather than marking this pass as a check. Setting it true here would
+    // let a never-verified visitor fall into hasProToolAccess()'s
+    // grandfathered branch the same way a real one does.
     if (!token || !userId) { this._isPremium = false; return; }
     this._premiumStatusLoadFailed = false;
     try {
@@ -149,16 +163,19 @@ export const authManager = {
         this._premiumStatusLoadFailed = true;
         this._isPremium      = false;
         this._trialStartedAt = null;
+        this._statusChecked  = true;
         return;
       }
       const rows = await res.json();
       const row = Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
       this._isPremium      = row?.is_premium === true;
       this._trialStartedAt = row?.trial_started_at ?? null;
+      this._statusChecked  = true;
     } catch {
       this._premiumStatusLoadFailed = true;
       this._isPremium      = false;
       this._trialStartedAt = null;
+      this._statusChecked  = true;
     }
   },
 
