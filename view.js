@@ -36,28 +36,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Pro status is about the signed-in VIEWER, not the report's original
   // author — known as soon as auth restores, independent of which report
-  // gets fetched below.
+  // gets fetched below. There's no sign-in UI on this page at all — a
+  // session only exists here if it was already established elsewhere
+  // (e.g. the audit viewer, which shares this origin's localStorage) — so
+  // this is a read-only check, not something a visitor can act on directly.
   await authManager.init();
   const isPremium = authManager.hasProToolAccess();
 
   const authModal = initAuthModal();
-  // The extension's session lives in chrome.storage, which this page can't
-  // read — a visitor here may genuinely have no session at all, same as the
-  // audit viewer's own web page. So the paywall picks between the two modal
-  // views the same way audit's does: signed-out gets the sign-in view,
-  // signed-in-but-not-Pro gets upgrade.
-  const openPaywall = () => authModal.open(authManager.isLoggedIn() ? 'upgrade' : 'signin');
-
-  // Persistent entry point into the auth modal — independent of the paywall
-  // triggers below, which only open it when isPremium is false. Without this,
-  // a signed-out visitor has no way to reach the sign-in form until they hit
-  // a gated action.
-  const signInBtn = document.getElementById('btn-sign-in');
-  if (authManager.isLoggedIn()) {
-    signInBtn?.setAttribute('hidden', '');
-  } else {
-    signInBtn?.addEventListener('click', () => authModal.open('signin'));
-  }
+  const openPaywall = () => authModal.open();
 
   // Toolbar download/print/share — gated the same way the audit viewer's
   // _initReportGate() does it: a free-tier visitor gets a single
@@ -141,7 +128,7 @@ async function downloadReportHtml() {
   if (!_currentReport || !contentEl) return;
 
   try {
-    const cssText = await fetch('style.css?v=4').then(res => res.text());
+    const cssText = await fetch('style.css?v=5').then(res => res.text());
     const typeLabel = document.title || 'UX Research Report';
 
     const html = `<!DOCTYPE html>
@@ -263,118 +250,29 @@ function initReportGate(openPaywall) {
   }
 }
 
-// ─── Auth / Upgrade Modal ────────────────────────────────────────────────────
-// Two states in one modal, same shape as ux-audit-report's paywall: 'signin'
-// for a logged-out visitor, 'upgrade' for a visitor who's signed in but not
-// Pro/trial. openPaywall() in DOMContentLoaded picks which one to show.
+// ─── Upgrade Modal ───────────────────────────────────────────────────────────
+// Single-purpose paywall — no sign-in form anywhere on this page. Pro status
+// comes from whatever session already exists in this origin's localStorage
+// (authManager.init() above); a non-Pro visitor's only path forward here is
+// the LemonSqueezy checkout link below.
 
 function initAuthModal() {
-  const modal        = document.getElementById('auth-modal');
-  const closeBtn      = document.getElementById('btn-auth-close');
-  const viewSignin    = document.getElementById('auth-view-signin');
-  const viewUpgrade   = document.getElementById('auth-view-upgrade');
-  const toggleLink    = document.getElementById('auth-toggle-link');
-  const toggleCopy    = document.getElementById('auth-toggle-copy');
-  const titleEl       = document.getElementById('auth-modal-title');
-  const submitBtn     = document.getElementById('auth-submit-btn');
-  const googleBtn     = document.getElementById('auth-google-btn');
-  const errorEl       = document.getElementById('auth-error');
-  const emailInput    = document.getElementById('auth-email');
-  const passwordInput = document.getElementById('auth-password');
-  const upgradeBtn    = document.getElementById('auth-upgrade-btn');
+  const modal      = document.getElementById('auth-modal');
+  const closeBtn    = document.getElementById('btn-auth-close');
+  const upgradeBtn  = document.getElementById('auth-upgrade-btn');
 
-  let mode = 'signin';
-
-  function renderSigninMode() {
-    const isRegister = mode === 'register';
-    titleEl.textContent    = isRegister ? 'Create your account' : 'Sign in to view this report';
-    submitBtn.textContent  = isRegister ? 'Create account' : 'Sign in';
-    toggleCopy.textContent = isRegister ? 'Already have an account?' : "Don't have an account?";
-    toggleLink.textContent = isRegister ? 'Sign in' : 'Register';
-  }
-
-  function showError(message) {
-    if (errorEl) errorEl.textContent = message || '';
-  }
-
-  // state: 'signin' (default) or 'upgrade'
-  function open(state = 'signin') {
-    const showUpgrade = state === 'upgrade';
-    viewSignin?.toggleAttribute('hidden', showUpgrade);
-    viewUpgrade?.toggleAttribute('hidden', !showUpgrade);
+  function open() {
     modal?.setAttribute('aria-hidden', 'false');
-    if (!showUpgrade) {
-      showError('');
-      requestAnimationFrame(() => emailInput?.focus());
-    }
   }
 
   function close() {
     modal?.setAttribute('aria-hidden', 'true');
-    showError('');
   }
-
-  // On success, reload rather than trying to re-render in place — matches
-  // ux-audit-report's own _doAuth(). authManager.signIn/signUp() already
-  // re-checked premium status internally (supabase-client.js's _persist()),
-  // so the reload's fresh init() call picks up the correct state cleanly:
-  // unlocks the report if now Pro/trial, or re-shows the gate with the
-  // modal now correctly resolving to 'upgrade' (isLoggedIn() is true) if not.
-  async function submit() {
-    const email    = emailInput?.value.trim() ?? '';
-    const password = passwordInput?.value ?? '';
-
-    if (!email || !password) {
-      showError('Enter your email and password.');
-      return;
-    }
-    showError('');
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Please wait…';
-
-    try {
-      if (mode === 'register') {
-        await authManager.signUp(email, password);
-      } else {
-        await authManager.signIn(email, password);
-      }
-      if (authManager.isLoggedIn()) {
-        close();
-        window.location.reload();
-      } else {
-        showError('Check your inbox to confirm your email, then sign in.');
-      }
-    } catch (err) {
-      showError(err.message || 'Something went wrong. Please try again.');
-    } finally {
-      submitBtn.disabled = false;
-      renderSigninMode();
-    }
-  }
-
-  function submitGoogle() {
-    googleBtn.disabled = true;
-    googleBtn.textContent = 'Redirecting…';
-    authManager.signInWithGoogle();
-  }
-
-  toggleLink?.addEventListener('click', () => {
-    mode = mode === 'register' ? 'signin' : 'register';
-    showError('');
-    renderSigninMode();
-  });
 
   closeBtn?.addEventListener('click', close);
 
   modal?.addEventListener('click', e => {
     if (e.target === modal) close();
-  });
-
-  submitBtn?.addEventListener('click', submit);
-  googleBtn?.addEventListener('click', submitGoogle);
-
-  [emailInput, passwordInput].forEach(input => {
-    input?.addEventListener('keydown', e => { if (e.key === 'Enter') submit(); });
   });
 
   upgradeBtn?.addEventListener('click', () => {

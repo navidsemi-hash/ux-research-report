@@ -198,9 +198,6 @@ body {
 .toolbar-btn--ghost:hover  { background: var(--bg-hover); border-color: var(--border-hover); }
 .toolbar-btn--ghost:active { opacity: .82; }
 .toolbar-btn svg { width: 13px; height: 13px; flex-shrink: 0; }
-/* .toolbar-btn's own display: inline-flex otherwise beats the UA [hidden]
-   rule (equal specificity, author sheet wins) — this makes hidden stick. */
-.toolbar-btn[hidden] { display: none; }
 
 .toolbar-divider {
   width: 1px;
@@ -345,7 +342,7 @@ body {
   transform: translateX(-50%) translateY(0);
 }
 
-/* ── Sign-in / Register Modal ── */
+/* ── Upgrade Modal ── */
 .auth-overlay {
   position: fixed;
   inset: 0;
@@ -402,79 +399,7 @@ body {
 .auth-title { font-size: 14px; font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
 .auth-desc  { font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 12px; }
 
-.auth-field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 11px; }
-.auth-label { font-size: 10px; font-weight: 600; color: var(--text-secondary); letter-spacing: .3px; text-transform: uppercase; }
-.auth-input {
-  width: 100%;
-  padding: 8px 10px;
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  background: var(--bg-base);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 120ms;
-}
-.auth-input:focus { border-color: var(--brand); background: var(--bg-surface); }
-.auth-error { font-size: 10.5px; color: #dc2626; min-height: 16px; margin-bottom: 2px; }
-.auth-error:empty { margin-bottom: 0; min-height: 0; }
-
-.auth-btn-primary {
-  width: 100%;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--brand);
-  color: #fff;
-  font-size: 12px;
-  font-weight: 600;
-  border: none;
-  cursor: pointer;
-  transition: background 140ms;
-  margin-bottom: 8px;
-}
-.auth-btn-primary:hover { background: var(--brand-hover); }
-.auth-btn-primary:disabled { opacity: .7; cursor: wait; }
-
-.auth-btn-google {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  color: var(--text-primary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background 140ms, border-color 140ms;
-  margin-bottom: 4px;
-}
-.auth-btn-google:hover  { background: var(--bg-hover); border-color: var(--border-hover); }
-.auth-btn-google:disabled { opacity: .7; cursor: wait; }
-.auth-btn-google svg { width: 16px; height: 16px; flex-shrink: 0; }
-
-.auth-toggle-text {
-  margin-top: 14px;
-  text-align: center;
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-.auth-toggle-link {
-  background: none;
-  border: none;
-  color: var(--brand);
-  font-weight: 600;
-  font-size: 11px;
-  cursor: pointer;
-  padding: 0 0 0 3px;
-}
-.auth-toggle-link:hover { text-decoration: underline; }
-
-/* ── Upgrade panel (second state of the same modal) ── */
+/* ── Upgrade panel ── */
 .auth-icon-premium { background: rgba(245, 158, 11, .14); }
 .auth-icon-premium svg { color: #d97706; }
 
