@@ -7,7 +7,7 @@
 // would otherwise keep serving the stale copy indefinitely. Bump the ?v=
 // on these two lines (and on view.html's <script> and <link> tags) whenever
 // a future fix here needs to force a refetch.
-import { authManager, SUPABASE_URL, SUPABASE_KEY } from './supabase-client.js?v=4';
+import { authManager, SUPABASE_URL, SUPABASE_KEY } from './supabase-client.js?v=5';
 import { renderReport, renderError } from './render-report.js?v=2';
 
 // ─── Theme Bootstrap ─────────────────────────────────────────────────────────
