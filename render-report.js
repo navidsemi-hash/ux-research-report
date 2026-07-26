@@ -81,7 +81,7 @@ export function renderError(kind = 'failed') {
     </div>`;
 }
 
-export function renderReport(report) {
+export function renderReport(report, isPremium = true) {
   const contentEl = document.getElementById('report-content');
   if (!contentEl) return;
 
@@ -99,23 +99,43 @@ export function renderReport(report) {
     return buildStep(step, visibleCount);
   });
 
-  const bodyHtml = stepHtmls.join('');
+  const bodyHtml = isPremium ? stepHtmls.join('') : buildSplitBody(stepHtmls);
 
   contentEl.innerHTML =
-    `<div class="pdf-report">${buildHeader(report)}${buildProgress(steps)}${bodyHtml}</div>`;
+    `<div class="pdf-report">${buildHeader(report, isPremium)}${buildProgress(steps)}${bodyHtml}</div>`;
 
   if (window.feather) window.feather.replace();
 }
 
+// Free preview / gated split — same 50/50 ratio the audit report viewer
+// uses on its pillars (ux-audit-report's export-handler.js,
+// _buildScreenReportBody), applied here over steps instead. Splits the
+// already-built HTML fragments rather than re-deriving step numbers, so
+// numbering stays continuous across the split (a gated step still reads
+// "5.", not restarting at "1.").
+function buildSplitBody(stepHtmls) {
+  const splitAt   = Math.ceil(stepHtmls.length / 2);
+  const freeHtml  = stepHtmls.slice(0, splitAt).join('');
+  const gatedHtml = stepHtmls.slice(splitAt).join('');
+  return `${freeHtml}<div id="premium-blurred-report-zone">${gatedHtml}</div>`;
+}
+
 // ─── Header ──────────────────────────────────────────────────────────────────
 
-function buildHeader(report) {
+function buildHeader(report, isPremium = true) {
   const typeLabel = typeLabelFor(report.project_type, report.project_name);
 
   const rows = [];
   if (report.project_name)    rows.push(metaRow('Project Name', report.project_name));
   if (report.researcher_name) rows.push(metaRow('Researcher', report.researcher_name));
   rows.push(metaRow('Export Date', formatDate(report.created_at)));
+
+  // Watermark — same markup/inline style as the audit viewer's buildCover()
+  // (export-handler.js): only rendered into the DOM at all when !isPremium,
+  // so a Pro report never carries the element to begin with.
+  const watermarkHtml = isPremium
+    ? ''
+    : '<span id="report-branding-watermark" style="color:rgba(255,255,255,0.7);font-size:12px;">navidsemi.com</span>';
 
   return `
 <div class="pdf-cover">
@@ -124,6 +144,7 @@ function buildHeader(report) {
       <span class="pdf-header-mark" aria-hidden="true">◼</span>
       <span>${escHtml(typeLabel)}</span>
     </div>
+    <div class="pdf-header-right">${watermarkHtml}</div>
   </div>
   <div class="pdf-cover-body">
     <h1 class="pdf-report-h1">${escHtml(typeLabel)}</h1>
