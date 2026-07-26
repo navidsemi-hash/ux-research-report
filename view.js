@@ -59,8 +59,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     signInBtn?.addEventListener('click', () => authModal.open('signin'));
   }
 
-  initShareToolbar(isPremium, openPaywall);
-  wireToolbarActions(isPremium, openPaywall);
+  // Toolbar download/print/share — gated the same way the audit viewer's
+  // _initReportGate() does it: a free-tier visitor gets a single
+  // intercepting listener per control that opens the paywall and nothing
+  // else; the real action listeners are wired only for Pro visitors, so
+  // the two code paths never both attach to the same button.
+  if (isPremium) {
+    initShareToolbar();
+    wireToolbarActions();
+  } else {
+    initReportGate(openPaywall);
+  }
 
   document.getElementById('btn-add-to-chrome')?.addEventListener('click', () => {
     if (!isPremium) { openPaywall(); return; }
@@ -100,18 +109,12 @@ async function loadReport(isPremium, openPaywall) {
   }
 }
 
-// Toolbar download/print — gated the same way share buttons are (see
-// initShareToolbar): intercept the click and open the paywall instead of
-// running the real action, rather than disabling the buttons outright.
-function wireToolbarActions(isPremium, openPaywall) {
-  document.getElementById('btn-download-pdf')?.addEventListener('click', e => {
-    if (!isPremium) { e.preventDefault(); openPaywall(); return; }
-    downloadReportHtml();
-  });
-  document.getElementById('btn-print')?.addEventListener('click', e => {
-    if (!isPremium) { e.preventDefault(); openPaywall(); return; }
-    window.print();
-  });
+// Real toolbar download/print actions — only ever wired for Pro visitors
+// (see the isPremium branch in DOMContentLoaded); free-tier visitors get
+// initReportGate()'s intercepting listeners on these same button IDs instead.
+function wireToolbarActions() {
+  document.getElementById('btn-download-pdf')?.addEventListener('click', () => downloadReportHtml());
+  document.getElementById('btn-print')?.addEventListener('click', () => window.print());
 }
 
 // ─── Direct HTML Download ────────────────────────────────────────────────────
@@ -203,13 +206,10 @@ function toast(message, durationMs = 3000) {
 }
 
 // ─── Share Toolbar ───────────────────────────────────────────────────────────
-// Gated the same way toolbar download/print are (see wireToolbarActions):
-// intercept the click and open the paywall instead of running the real
-// share action.
+// Real share actions — only ever wired for Pro visitors (see wireToolbarActions).
 
-function initShareToolbar(isPremium, openPaywall) {
+function initShareToolbar() {
   document.getElementById('share-link')?.addEventListener('click', async function () {
-    if (!isPremium) { openPaywall(); return; }
     try {
       await navigator.clipboard.writeText(window.location.href);
     } catch {
@@ -220,19 +220,37 @@ function initShareToolbar(isPremium, openPaywall) {
   });
 
   document.getElementById('share-wa')?.addEventListener('click', () => {
-    if (!isPremium) { openPaywall(); return; }
     window.open(`https://wa.me/?text=${encodeURIComponent('Research report: ' + window.location.href)}`, '_blank', 'noopener,noreferrer');
   });
 
   document.getElementById('share-tg')?.addEventListener('click', () => {
-    if (!isPremium) { openPaywall(); return; }
     window.open(`https://t.me/share/url?url=${encodeURIComponent(window.location.href)}&text=${encodeURIComponent('Research report')}`, '_blank', 'noopener,noreferrer');
   });
 
   document.getElementById('share-x')?.addEventListener('click', () => {
-    if (!isPremium) { openPaywall(); return; }
     window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent('Research report')}&url=${encodeURIComponent(window.location.href)}`, '_blank', 'noopener,noreferrer');
   });
+}
+
+// ─── Report Gate ─────────────────────────────────────────────────────────────
+// Ported from the audit viewer's export-handler.js _initReportGate(): every
+// gated toolbar control gets a single intercepting listener instead of the
+// real one, so a free-tier click always opens the paywall and never falls
+// through to the real action (stopImmediatePropagation guards against any
+// other listener on the same element firing first).
+const GATED_ACTION_IDS = [
+  'btn-download-pdf', 'btn-print',
+  'share-link', 'share-wa', 'share-tg', 'share-x',
+];
+
+function initReportGate(openPaywall) {
+  for (const id of GATED_ACTION_IDS) {
+    document.getElementById(id)?.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      openPaywall();
+    });
+  }
 }
 
 // ─── Auth / Upgrade Modal ────────────────────────────────────────────────────
