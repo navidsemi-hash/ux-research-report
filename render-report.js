@@ -81,7 +81,7 @@ export function renderError(kind = 'failed') {
     </div>`;
 }
 
-export function renderReport(report, isPremium = true) {
+export function renderReport(report) {
   const contentEl = document.getElementById('report-content');
   if (!contentEl) return;
 
@@ -99,25 +99,12 @@ export function renderReport(report, isPremium = true) {
     return buildStep(step, visibleCount);
   });
 
-  const bodyHtml = isPremium ? stepHtmls.join('') : buildSplitBody(stepHtmls);
+  const bodyHtml = stepHtmls.join('');
 
   contentEl.innerHTML =
     `<div class="pdf-report">${buildHeader(report)}${buildProgress(steps)}${bodyHtml}</div>`;
 
   if (window.feather) window.feather.replace();
-}
-
-// Free preview / gated split — same 50/50 ratio the audit report viewer
-// uses on its pillars (ux-audit-report's export-handler.js,
-// _buildScreenReportBody), applied here over steps instead. Splits the
-// already-built HTML fragments rather than re-deriving step numbers, so
-// numbering stays continuous across the split (a gated step still reads
-// "5.", not restarting at "1.").
-function buildSplitBody(stepHtmls) {
-  const splitAt   = Math.ceil(stepHtmls.length / 2);
-  const freeHtml  = stepHtmls.slice(0, splitAt).join('');
-  const gatedHtml = stepHtmls.slice(splitAt).join('');
-  return `${freeHtml}<div id="premium-blurred-report-zone">${gatedHtml}</div>`;
 }
 
 // ─── Header ──────────────────────────────────────────────────────────────────
